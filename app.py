@@ -1,25 +1,21 @@
 import os
 import requests
-import uuid
 import json
 from flask import Flask, request, jsonify, Response
 
-
-
 app = Flask(__name__)
-
 
 IMAGES_DIR = 'images'
 if not os.path.exists(IMAGES_DIR):
     os.mkdir(IMAGES_DIR)
 MAPPINGS_FILE = IMAGES_DIR + '/image_url_mappings.json'
 
-
 if os.path.exists(MAPPINGS_FILE):
     with open(MAPPINGS_FILE, 'r') as f:
         image_url_mapping = json.load(f)
 else:
     image_url_mapping = {}
+
 def save_mappings():
     with open(MAPPINGS_FILE, 'w') as f:
         json.dump(image_url_mapping, f)
@@ -31,13 +27,16 @@ def stream_image(image_url):
     else:
         return None
 
+def generate_random_filename():
+    return str(int.from_bytes(os.urandom(16), byteorder='big'))
+
 def gen_photo(text, num, seed=-1, steps=50, guidance_scale=10, sampler='Euler a'):
     url = 'https://cognise.art/api/mobile/txt2img/generate/v4'
     head = {
         'Authorization': 'token 7bb91a6699cc3794750101ce0354d80195f07c04'
     }
 
-    unique_user_uuid = str(uuid.uuid4())
+    unique_user_uuid = generate_random_filename()
 
     js = {
         "batch_size": num,
@@ -68,7 +67,7 @@ def gen_photo(text, num, seed=-1, steps=50, guidance_scale=10, sampler='Euler a'
         images = results['data']['images']
         for img in images:
             remote_image_url = 'https://storage.cognise.art' + img['image']
-            unique_filename = str(uuid.uuid4()) + '.jpg'
+            unique_filename = generate_random_filename() + '.jpg'
             local_image_url = request.host_url + 'images/' + unique_filename
             image_urls.append(local_image_url)
             image_url_mapping[unique_filename] = remote_image_url
